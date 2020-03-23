@@ -63,7 +63,7 @@ def view_users():
     createID()
     users = User.query.all()
     result = []
-    tier = str(data['tier'])
+    tier = str(data['tier']) if 'tier' in data else '123'
     for user in users:
         if str(getTier(user.exp)) in tier:
             result.append(user.json())
@@ -75,7 +75,7 @@ def usePoints():
     user_id = data['user_id']
     points = int(data['points'])
     status = 201
-    result = {"status": status, "message": "Points used!"}
+    result = {"message": "Points used!"}
 
     user = User.query.filter_by(user_id=user_id).first()
 
