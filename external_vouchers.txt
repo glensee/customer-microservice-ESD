@@ -1,3 +1,0 @@
-Voucher_ID,Company,Promocode,Points,Description,Image
-1,Grab,ELLIPSIS123,500,20 % off Grab Ride,image/grab.jpg
-2,Shopee,ELLIPSIS1337,750,15 % off all products,image/shopee.jpg

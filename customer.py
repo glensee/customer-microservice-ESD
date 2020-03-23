@@ -40,16 +40,6 @@ def getTier(exp):
         tier = 2
     return tier
 
-def vouchersArr():
-    vouchers = {}
-    # TODO: Change the name when moved to cloud
-    with open('C:\wamp64\www\ESDproject\external_vouchers.txt') as csv_file:
-        rows = csv.reader(csv_file, delimiter=',')
-        next(rows)
-        for row in rows:
-            vouchers[row[0]] = {"voucher_id": row[0], "name": row[1], "promo_code": row[2], "points_needed": row[3], "description": row[4], "image": row[5]}
-    return vouchers
-
 @app.route("/ESDproject/login", methods=['POST'])
 def g_login():
     data = request.get_json()
@@ -60,7 +50,7 @@ def g_login():
         return jsonify(user.json())
     return jsonify({'message': 'User not found for id ' + str(user_id)}), 404
 
-@app.route("/ESDproject/view/<int:user_id>")
+@app.route("/ESDproject/viewUser/<int:user_id>")
 def view_user(user_id):
     user = User.query.filter_by(user_id=user_id).first()
     if user:
@@ -69,61 +59,15 @@ def view_user(user_id):
 
 @app.route("/ESDproject/view")
 def view_users():
+    data = request.args
     createID()
     users = User.query.all()
     result = []
+    tier = str(data['tier'])
     for user in users:
-        result.append(user.json())
+        if str(getTier(user.exp)) in tier:
+            result.append(user.json())
     return jsonify(result)
-
-# change app route
-@app.route("/ESDproject/vouchers")
-def view_vouchers():
-    vouchers = []
-    # TODO: Change the name when moved to cloud
-    with open('C:\wamp64\www\ESDproject\external_vouchers.txt') as csv_file:
-        rows = csv.reader(csv_file, delimiter=',')
-        next(rows)
-        for row in rows:
-            vouchers.append({"voucher_id": row[0], "name": row[1], "promo_code": row[2], "points_needed": row[3], "description": row[4], "image": row[5]})
-    return jsonify(vouchers)
-
-@app.route("/ESDproject/vouchers/<int:voucher_id>", methods=['GET'])
-def findVoucher(voucher_id):
-    vouchers = vouchersArr()
-    voucher_id = str(voucher_id)
-    if voucher_id in vouchers:
-        return jsonify(vouchers[voucher_id])
-    return jsonify({'message': 'Voucher not found for id ' + str(voucher_id)}), 404
-
-@app.route("/ESDproject/vouchers/<int:voucher_id>", methods=['POST'])
-def redeem_voucher(voucher_id):
-    data = request.get_json()
-    # status in 2xx indicates success
-    status = 201
-    result = {}
-
-    # retrieve information about user_id from the request
-    user_id = data['user_id']
-    vouchers = vouchersArr()
-    voucher_id = str(voucher_id)
-
-    if (voucher_id in vouchers):
-        result = vouchers[voucher_id]
-        user = User.query.filter_by(user_id=user_id).first()
-
-        point = int(result['points_needed'])
-        if user.point < point:
-            return jsonify({"message": "Insufficient points"}), 404
-
-        user.point = User.point - point
-        db.session.commit()
-        return jsonify({'message': "Successfully redeemed!","code": result['promo_code']})
-
-    else:
-        return jsonify({"message": "Invalid voucher_id"}), 404
-
-    return jsonify(result), status
 
 @app.route("/ESDproject/use", methods=['POST'])
 def usePoints():
@@ -209,13 +153,14 @@ def createID():
     with urllib.request.urlopen("https://api.telegram.org/bot1072538370:AAH2EvVRZJUpoE0SfIXgD2KKrrsN8E8Flq4/getupdates") as url:
         data = json.loads(url.read().decode())
         for message in data['result']:
-            username = message['message']['from']['username']
-            user_id = message['message']['from']['id']
-            if username in user_ids and user_ids[username] is None:
-                user_ids[username] = user_id
-                user = User.query.filter_by(telehandle=username).first()
-                user.tele_id = user_id
-                db.session.commit()
+            if 'message' in message:
+                username = message['message']['from']['username']
+                user_id = message['message']['from']['id']
+                if username in user_ids and user_ids[username] is None:
+                    user_ids[username] = user_id
+                    user = User.query.filter_by(telehandle=username).first()
+                    user.tele_id = user_id
+                    db.session.commit()
 
 if __name__ == '__main__':
     app.run(host="0.0.0.0", port=5001, debug=True)
