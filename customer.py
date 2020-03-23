@@ -121,7 +121,8 @@ def updatePoints(amt): # Assumes {'user_id': user_id, 'amt': amount }
     print("Recording a successful transaction amt:")
     print(amt)
     user = User.query.filter_by(user_id=amt['user_id']).first()
-    user.point = User.point + amt['amt']
+    user.point = User.point + amt['amt'] * 10
+    user.exp = User.exp + amt['amt'] * 10
     db.session.commit()
 
 def login():
