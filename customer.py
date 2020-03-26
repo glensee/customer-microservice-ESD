@@ -4,10 +4,14 @@ from flask_cors import CORS
 
 from datetime import datetime
 import json
+import requests
 import pika
-
 import csv
 import urllib.request, time
+
+from flask_graphql import GraphQLView
+from graphene import ObjectType, String, Int, Field, List, Schema, Float
+from graphene.types.datetime import Date
 
 app = Flask(__name__)
 # TODO: Change the name of the database when moved to cloud
@@ -17,19 +21,77 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 CORS(app)
 
+######## GRAPHQL settings ##########
+
+class User(ObjectType):
+    userID = Int()
+    name = String()
+    email = String()
+    telehandle = String()
+    teleID = Int()
+    point = Int()
+    exp = Int()
+    tier = Int()
+    message = String()
+
+class usePoints(ObjectType):
+    status = Int()
+    message = String()
+    deduction = Float()
+
+class Query(ObjectType):
+    user = Field(User, userID = Int())
+    users = List(User, tier = Int())
+    use = Field(usePoints, userID = Int(), points = Int())
+    login = Field(User, email = String())
+    register = Field(User, name = String(), email = String(), telehandle = String())
+
+    def resolve_user(parent, info, userID):
+        r = requests.get("http://127.0.0.1:5001/viewUser/{}".format(userID)).json()
+        return r
+
+    def resolve_users(parent, info, tier):
+        payload = {"tier":tier}
+        r = requests.get("http://127.0.0.1:5001/view", params = payload).json()
+        return r
+
+    def resolve_use(parent, info, userID, points):
+        payload = {"userID":userID,"points":points}
+        r = requests.put("http://127.0.0.1:5001/use", json = payload).json()
+        return r
+
+    def resolve_login(parent, info, email):
+        payload = {"email": email}
+        r = requests.post("http://127.0.0.1:5001/login", json = payload).json()
+        return r
+
+    def resolve_register(parent, info, name, email, telehandle):
+        payload = {
+            "email": email,
+            "telehandle": telehandle,
+            "name": name
+        }
+        r = requests.post("http://127.0.0.1:5001/register", json = payload).json()
+        return r
+
+customer_schema = Schema(query = Query)
+
+app.add_url_rule('/graphql', view_func=GraphQLView.as_view('graphql', schema=customer_schema, graphiql=True))
+######## GraphQL END #########
+
 class User(db.Model):
     __tablename__ = 'user'
 
-    user_id = db.Column(db.Integer, primary_key=True)
+    userID = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(32), nullable=False)
+    email = db.Column(db.String(64), nullable=False)
+    telehandle = db.Column(db.String(32), nullable=False)
+    teleID = db.Column(db.Integer())
     point = db.Column(db.Integer(), nullable=False)
     exp = db.Column(db.Integer(), nullable=False)
-    telehandle = db.Column(db.String(32), nullable=False)
-    tele_id = db.Column(db.Integer())
-    email = db.Column(db.String(64))
 
     def json(self):
-        return {'user_id': self.user_id, 'name': self.name, 'point': self.point, 'exp': self.exp, 'telehande': self.telehandle, 'tele_id': self.tele_id, 'email': self.email, 'tier': getTier(self.exp)}
+        return {'userID': self.userID, 'name': self.name, 'email': self.email, 'telehandle': self.telehandle, 'teleID': self.teleID, 'point': self.point, 'exp': self.exp, 'tier': getTier(self.exp)}
 
 
 def getTier(exp):
@@ -40,24 +102,44 @@ def getTier(exp):
         tier = 2
     return tier
 
-@app.route("/ESDproject/login", methods=['POST'])
-def g_login():
+# Still requires some touchup based on the Google API implementation
+@app.route("/login", methods=['POST'])
+def login():
     data = request.get_json()
-    # depending on the data given by Google, we may need to use the ID associated to google
-    user_id = data['user_id']
-    user = User.query.filter_by(user_id=user_id).first()
+    email = data['email']
+    user = User.query.filter_by(email=email).first()
     if user:
-        return jsonify(user.json())
-    return jsonify({'message': 'User not found for id ' + str(user_id)}), 404
+        return jsonify(user.json()),201
+    return jsonify({'message': 'Unsuccessful login'}), 404
 
-@app.route("/ESDproject/viewUser/<int:user_id>")
-def view_user(user_id):
-    user = User.query.filter_by(user_id=user_id).first()
+@app.route("/register", methods=['POST'])
+def register():
+    data = request.get_json()
+
+    if User.query.filter_by(email = data['email']).first():
+        return jsonify({'message': 'An account tied to that email has already been registered'}), 404
+    elif User.query.filter_by(telehandle = data['telehandle']).first():
+        return jsonify({'message': 'An account tied to that telehandle has already been registered'}), 404
+    else:
+        user = User(userID=None,name=data['name'],email=data['email'],telehandle=data['telehandle'],teleID=None,point=0,exp=0)
+        try:
+            db.session.add(user)
+            db.session.commit()
+        except Exception as e:
+            print(e)
+            return jsonify({"message": "An error occurred during registration"}), 500
+        print(user)
+
+    return jsonify(user.json()), 201
+
+@app.route("/viewUser/<int:userID>")
+def view_user(userID):
+    user = User.query.filter_by(userID=userID).first()
     if user:
-        return jsonify(user.json())
-    return jsonify({'message': 'User not found for id ' + str(user_id)}), 404
+        return jsonify(user.json()),201
+    return jsonify({'message': 'User not found for id ' + str(userID)}), 404
 
-@app.route("/ESDproject/view")
+@app.route("/view")
 def view_users():
     data = request.args
     createID()
@@ -69,19 +151,21 @@ def view_users():
             result.append(user.json())
     return jsonify(result)
 
-@app.route("/ESDproject/use", methods=['POST'])
+@app.route("/use", methods=['PUT'])
 def usePoints():
     data = request.get_json()
-    user_id = data['user_id']
+    userID = data['userID']
     points = int(data['points'])
     status = 201
     result = {"status": status, "message": "Points used!"}
 
-    user = User.query.filter_by(user_id=user_id).first()
-
-    if user.point < points:
+    user = User.query.filter_by(userID=userID).first()
+    if not user:
         status = 500
-        result = {"message": "Insufficient points!"}
+        result = {"status": status, "message": "Invalid userID!"}
+    elif user.point < points:
+        status = 500
+        result = {"status": status, "message": "Insufficient points!"}
     else:
         user.point = User.point - points
         db.session.commit()
@@ -117,49 +201,37 @@ def callback(channel, method, properties, body): # required signature for the ca
     updatePoints(json.loads(body))
     print() # print a new line feed
 
-def updatePoints(amt): # Assumes {'user_id': user_id, 'amt': amount }
+def updatePoints(amt): # Assumes {'userID': userID, 'amt': amount }
     print("Recording a successful transaction amt:")
     print(amt)
-    user = User.query.filter_by(user_id=amt['user_id']).first()
+    user = User.query.filter_by(userID=amt['userID']).first()
     user.point = User.point + amt['amt']
     db.session.commit()
 
-def login():
-    data = request.get_json()
-    user_id = data['user_id']
-    status = 201
-    result = {}
-
-    user = User.query.filter_by(user_id=user_id).first()
-
-    if (user):
-        result = {"Welcome to Petrol Home"}
-    else:
-        return jsonify({"message": "Invalid 'user_id'"}), 404
-
-    return jsonify(result), status
-
-def userID():
+def user_ID():
     users = User.query.all()
 
-    user_ids = {}
+    userIDs = {}
     for user in users:
-        user_ids[user.telehandle] = user.tele_id
+        userIDs[user.telehandle] = user.teleID
 
-    return user_ids
+    return userIDs
 
 def createID():
-    user_ids = userID()
+    userIDs = user_ID()
+
     with urllib.request.urlopen("https://api.telegram.org/bot1072538370:AAH2EvVRZJUpoE0SfIXgD2KKrrsN8E8Flq4/getupdates") as url:
         data = json.loads(url.read().decode())
+
         for message in data['result']:
             if 'message' in message:
                 username = message['message']['from']['username']
-                user_id = message['message']['from']['id']
-                if username in user_ids and user_ids[username] is None:
-                    user_ids[username] = user_id
+                userID = message['message']['from']['id']
+
+                if username in userIDs and userIDs[username] is None:
+                    userIDs[username] = userID
                     user = User.query.filter_by(telehandle=username).first()
-                    user.tele_id = user_id
+                    user.teleID = userID
                     db.session.commit()
 
 if __name__ == '__main__':

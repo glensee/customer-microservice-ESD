@@ -17,14 +17,16 @@ USE `customer`;
 
 DROP TABLE IF EXISTS `user`;
 CREATE TABLE IF NOT EXISTS `user` (
-  `user_id` INT NOT NULL AUTO_INCREMENT,
+  `userID` INT NOT NULL AUTO_INCREMENT,
   `name` VARCHAR(32) NOT NULL,
+  `email` VARCHAR(64) NOT NULL,
+  `telehandle` VARCHAR(32) NOT NULL,
+  `teleID` INT,
   `point` INT NOT NULL,
   `exp` INT NOT NULL,
-  `telehandle` VARCHAR(32) NOT NULL,
-  `tele_id` INT,
-  `email` VARCHAR(64),
-  PRIMARY KEY (`user_id`)
+
+  UNIQUE(`email`),
+  PRIMARY KEY (`userID`)
 );
 
 --
@@ -32,7 +34,7 @@ CREATE TABLE IF NOT EXISTS `user` (
 --
 
 INSERT INTO `user` VALUES
-(NULL,'Apple TAN',1000,2000,'apple_tan',NULL,NULL), 
-(NULL,'Glen See',2000,4000,"glen_see",284805668,'glen.see.2018@sis.smu.edu.sg');
+(NULL,'Apple TAN',"apple@gmail.com",'apple_tan',NULL,4000,5000),
+(NULL,'Glen See','glen.see.2018@smu.edu.sg',"glen_see",NULL,1000,2000);
 
 -- --------------------------------------------------------
