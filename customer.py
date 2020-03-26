@@ -145,7 +145,7 @@ def view_users():
     createID()
     users = User.query.all()
     result = []
-    tier = str(data['tier'])
+    tier = str(data['tier']) if 'tier' in data else '123'
     for user in users:
         if str(getTier(user.exp)) in tier:
             result.append(user.json())
@@ -157,7 +157,7 @@ def usePoints():
     userID = data['userID']
     points = int(data['points'])
     status = 201
-    result = {"status": status, "message": "Points used!"}
+    result = {"message": "Points used!"}
 
     user = User.query.filter_by(userID=userID).first()
     if not user:
@@ -204,8 +204,9 @@ def callback(channel, method, properties, body): # required signature for the ca
 def updatePoints(amt): # Assumes {'userID': userID, 'amt': amount }
     print("Recording a successful transaction amt:")
     print(amt)
-    user = User.query.filter_by(userID=amt['userID']).first()
-    user.point = User.point + amt['amt']
+    user = User.query.filter_by(user_id=amt['userID']).first()
+    user.point = User.point + amt['amt'] * 10
+    user.exp = User.exp + amt['amt'] * 10
     db.session.commit()
 
 def user_ID():
