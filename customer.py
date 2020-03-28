@@ -1,16 +1,10 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, redirect, url_for
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
 
 # Third-party libraries for Google Login API
-from flask import Flask, redirect, request, url_for
-from flask_login import (
-    LoginManager,
-    current_user,
-    login_required,
-    login_user,
-    logout_user,
-)
+from flask_login import LoginManager,current_user,login_required,login_user,logout_user
+
 
 from datetime import datetime
 import json
@@ -20,6 +14,7 @@ import requests
 import pika
 import csv
 import urllib.request, time
+import oauthlib.oauth2 as oo
 
 from flask_graphql import GraphQLView
 from graphene import ObjectType, String, Int, Field, List, Schema, Float
@@ -29,21 +24,27 @@ from graphene.types.datetime import Date
 
 # config TODO get google client id after deployment!!
 file = open("googleAPI.txt")
-GOOGLE_CLIENT_ID = file[0]
+line1 = file.readline()
+line2 = file.readline()
+GOOGLE_CLIENT_ID = line1
 os.environ.get("GOOGLE_CLIENT_ID", None)
-GOOGLE_CLIENT_SECRET = file[1]
+GOOGLE_CLIENT_SECRET = line2
 os.environ.get("GOOGLE_CLIENT_SECRET", None)
 GOOGLE_DISCOVERY_URL = (
     "https://accounts.google.com/.well-known/openid-configuration"
 )
 # using flask's login manager for user session mgmt setup
 
+dbname = "customer"
+host = "127.0.0.1"
+port = 5300
+
 # OAuth 2 client setup
-client = WebApplicationClient(GOOGLE_CLIENT_ID)
+client = oo.WebApplicationClient(GOOGLE_CLIENT_ID)
 
 app = Flask(__name__)
-# TODO: Change the name of the database when moved to cloud
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+mysqlconnector://root@localhost:3306/customer'
+# TODO: Set this to mysql+mysqlconnector://root@localhost:3306/ to enable its usage in localhost
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('dbURL') + dbname
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 login_manager = LoginManager()
@@ -78,22 +79,22 @@ class Query(ObjectType):
     register = Field(User, name = String(), email = String(), telehandle = String())
 
     def resolve_user(parent, info, userID):
-        r = requests.get("http://127.0.0.1:5001/viewUser/{}".format(userID)).json()
+        r = requests.get("http://{}:{}/viewUser/{}".format(host,port,userID)).json()
         return r
 
     def resolve_users(parent, info, tier):
         payload = {"tier":tier}
-        r = requests.get("http://127.0.0.1:5001/view", params = payload).json()
+        r = requests.get("http://{}:{}/view".format(host,port), params = payload).json()
         return r
 
     def resolve_use(parent, info, userID, points):
         payload = {"userID":userID,"points":points}
-        r = requests.put("http://127.0.0.1:5001/use", json = payload).json()
+        r = requests.put("http://{}:{}/use".format(host,port), json = payload).json()
         return r
 
     def resolve_login(parent, info, email):
         payload = {"email": email}
-        r = requests.post("http://127.0.0.1:5001/login", json = payload).json()
+        r = requests.post("http://{}:{}/login".format(host,port), json = payload).json()
         return r
 
     def resolve_register(parent, info, name, email, telehandle):
@@ -102,7 +103,7 @@ class Query(ObjectType):
             "telehandle": telehandle,
             "name": name
         }
-        r = requests.post("http://127.0.0.1:5001/register", json = payload).json()
+        r = requests.post("http://{}:{}/register".format(host,port), json = payload).json()
         return r
 
 customer_schema = Schema(query = Query)
@@ -273,6 +274,7 @@ def createID():
 def load_user(userID):
     return User.get(userID)
 
+# TODO: Do up GraphQL for this?
 @app.route("/home")
 def index():
     if current_user.is_authenticated:
@@ -290,6 +292,7 @@ def index():
 def get_google_provider_cfg():
     return requests.get(GOOGLE_DISCOVERY_URL).json()
 
+# TODO: GraphQL for this?
 @app.route("/google_login")
 def google_login():
     # Find out what URL to hit for Google login
@@ -305,6 +308,7 @@ def google_login():
     )
     return redirect(request_uri)
 
+# TODO: GraphQL for this?
 @app.route("/google_login/google_callback")
 def google_callback():
     # Get authorization code Google sent back
@@ -355,6 +359,7 @@ def google_callback():
         # send user to home page if user is existing
         return redirect(url_for("home"))
 
+# TODO: GraphQL for this?
 @app.route("/logout")
 @login_required
 def logout():
