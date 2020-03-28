@@ -13,7 +13,6 @@ import sqlite3
 import requests
 import pika
 import csv
-import urllib.request, time
 import oauthlib.oauth2 as oo
 
 from flask_graphql import GraphQLView
@@ -253,19 +252,19 @@ def user_ID():
 def createID():
     userIDs = user_ID()
 
-    with urllib.request.urlopen("https://api.telegram.org/bot1072538370:AAH2EvVRZJUpoE0SfIXgD2KKrrsN8E8Flq4/getupdates") as url:
-        data = json.loads(url.read().decode())
+    r = requests.get("https://api.telegram.org/bot1072538370:AAH2EvVRZJUpoE0SfIXgD2KKrrsN8E8Flq4/getupdates")
+    data = r.json()
 
-        for message in data['result']:
-            if 'message' in message:
-                username = message['message']['from']['username']
-                userID = message['message']['from']['id']
+    for message in data['result']:
+        if 'message' in message:
+            username = message['message']['from']['username']
+            userID = message['message']['from']['id']
 
-                if username in userIDs and userIDs[username] is None:
-                    userIDs[username] = userID
-                    user = User.query.filter_by(telehandle=username).first()
-                    user.teleID = userID
-                    db.session.commit()
+            if username in userIDs and userIDs[username] is None:
+                userIDs[username] = userID
+                user = User.query.filter_by(telehandle=username).first()
+                user.teleID = userID
+                db.session.commit()
 
 ######### google api settings ##########
 
