@@ -213,18 +213,18 @@ def receiveAmt():
     channel = connection.channel()
 
     # set up the exchange if the exchange doesn't exist
-    exchangename="customer"
+    exchangename="rewards_direct"
     channel.exchange_declare(exchange=exchangename, exchange_type='direct')
 
     # prepare a queue for receiving messages
-    channelqueue = channel.queue_declare(queue='', exclusive=True) # '' indicates a random unique queue name; 'exclusive' indicates the queue is used only by this receiver and will be deleted if the receiver disconnects.
+    channelqueue = channel.queue_declare(queue='customer', durable=True) # '' indicates a random unique queue name; 'exclusive' indicates the queue is used only by this receiver and will be deleted if the receiver disconnects.
         # If no need durability of the messages, no need durable queues, and can use such temp random queues.
     queue_name = channelqueue.method.queue
-    channel.queue_bind(exchange=exchangename, queue=queue_name, routing_key='customer.info') # bind the queue to the exchange via the key
+    channel.queue_bind(exchange=exchangename, queue='customer', routing_key='rewards.info') # bind the queue to the exchange via the key
         # Can bind the same queue to the same exchange via different keys
 
     # set up a consumer and start to wait for coming messages
-    channel.basic_consume(queue=queue_name, on_message_callback=callback, auto_ack=True)
+    channel.basic_consume(queue='customer', on_message_callback=callback, auto_ack=True)
     channel.start_consuming() # an implicit loop waiting to receive messages; it doesn't exit by default. Use Ctrl+C in the command window to terminate it.
 
 def callback(channel, method, properties, body): # required signature for the callback; no return
