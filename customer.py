@@ -19,7 +19,6 @@ from graphene.types.datetime import Date
 
 ######## google api settings #########
 
-# config TODO get google client id after deployment!!
 file = open("googleAPI.txt")
 line1 = file.readline()
 line2 = file.readline()
@@ -46,12 +45,11 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 login_manager = LoginManager()
 login_manager.init_app(app)
 
-db = SQLAlchemy(app)
 CORS(app)
 
 ######## GRAPHQL settings ##########
 
-class Users(ObjectType):
+class User(ObjectType):
     userID = Int()
     name = String()
     email = String()
@@ -68,11 +66,11 @@ class usePoints(ObjectType):
     deduction = Float()
 
 class Query(ObjectType):
-    user = Field(Users, userID = Int())
-    users = List(Users, tier = Int())
+    user = Field(User, userID = Int())
+    users = List(User, tier = Int())
     use = Field(usePoints, userID = Int(), points = Int())
-    login = Field(Users, email = String())
-    register = Field(Users, name = String(), email = String(), telehandle = String())
+    login = Field(User, email = String())
+    register = Field(User, name = String(), email = String(), telehandle = String())
 
     def resolve_user(parent, info, userID):
         r = requests.get("http://{}:{}/viewUser/{}".format(host,port,userID)).json()
@@ -107,6 +105,8 @@ customer_schema = Schema(query = Query)
 app.add_url_rule('/graphql', view_func=GraphQLView.as_view('graphql', schema=customer_schema, graphiql=True))
 ######## GraphQL END #########
 
+db = SQLAlchemy(app)
+
 class User(db.Model):
     __tablename__ = 'user'
 
@@ -117,6 +117,15 @@ class User(db.Model):
     teleID = db.Column(db.Integer())
     point = db.Column(db.Integer(), nullable=False)
     exp = db.Column(db.Integer(), nullable=False)
+
+    # def __init__(self, userID, name, email, telehandle, teleID, point, exp, **kwargs):
+    #     self.userID = userID
+    #     self.name = name
+    #     self.email = email
+    #     self.telehandle = telehandle
+    #     self.teleID = teleID
+    #     self.point = point
+    #     self.exp = exp
 
     def json(self):
         return {'userID': self.userID, 'name': self.name, 'email': self.email, 'telehandle': self.telehandle, 'teleID': self.teleID, 'point': self.point, 'exp': self.exp, 'tier': getTier(self.exp)}
@@ -362,5 +371,5 @@ def logout():
     return redirect(url_for("home"))
 
 if __name__ == '__main__':
-    app.run(host="localhost", port=5300, debug=True)
+    app.run(host="0.0.0.0", port=5300, debug=True)
 
