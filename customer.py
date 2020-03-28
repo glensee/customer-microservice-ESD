@@ -36,7 +36,7 @@ GOOGLE_DISCOVERY_URL = (
 # using flask's login manager for user session mgmt setup
 
 dbname = "customer"
-host = "127.0.0.1"
+host = "localhost"
 port = 5300
 
 # OAuth 2 client setup
