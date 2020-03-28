@@ -28,15 +28,14 @@ from graphene.types.datetime import Date
 ######## google api settings #########
 
 # config TODO get google client id after deployment!!
-GOOGLE_CLIENT_ID = os.environ.get("GOOGLE_CLIENT_ID", None)
-GOOGLE_CLIENT_SECRET = os.environ.get("GOOGLE_CLIENT_SECRET", None)
+GOOGLE_CLIENT_ID = "366548991124-2i9juv82nq5ca8n9ssgfo0dpl3mvldql.apps.googleusercontent.com"
+os.environ.get("GOOGLE_CLIENT_ID", None)
+GOOGLE_CLIENT_SECRET = "Zb6nbWtgBqBAyOgbVge-h2c7"
+os.environ.get("GOOGLE_CLIENT_SECRET", None)
 GOOGLE_DISCOVERY_URL = (
     "https://accounts.google.com/.well-known/openid-configuration"
 )
-
 # using flask's login manager for user session mgmt setup
-login_manager = LoginManager()
-login_manager.init_app(app)
 
 # OAuth 2 client setup
 client = WebApplicationClient(GOOGLE_CLIENT_ID)
@@ -45,6 +44,9 @@ app = Flask(__name__)
 # TODO: Change the name of the database when moved to cloud
 app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+mysqlconnector://root@localhost:3306/customer'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+login_manager = LoginManager()
+login_manager.init_app(app)
 
 db = SQLAlchemy(app)
 CORS(app)
