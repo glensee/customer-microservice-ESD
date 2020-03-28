@@ -28,9 +28,10 @@ from graphene.types.datetime import Date
 ######## google api settings #########
 
 # config TODO get google client id after deployment!!
-GOOGLE_CLIENT_ID = "366548991124-2i9juv82nq5ca8n9ssgfo0dpl3mvldql.apps.googleusercontent.com"
+file = open("googleAPI.txt")
+GOOGLE_CLIENT_ID = file[0]
 os.environ.get("GOOGLE_CLIENT_ID", None)
-GOOGLE_CLIENT_SECRET = "Zb6nbWtgBqBAyOgbVge-h2c7"
+GOOGLE_CLIENT_SECRET = file[1]
 os.environ.get("GOOGLE_CLIENT_SECRET", None)
 GOOGLE_DISCOVERY_URL = (
     "https://accounts.google.com/.well-known/openid-configuration"
