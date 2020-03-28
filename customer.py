@@ -41,10 +41,10 @@ port = 5300
 
 # OAuth 2 client setup
 client = oo.WebApplicationClient(GOOGLE_CLIENT_ID)
+dbURL = "mysql+mysqlconnector://root@localhost:3306/"
 
 app = Flask(__name__)
-# TODO: Set this to mysql+mysqlconnector://root@localhost:3306/ to enable its usage in localhost
-app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('dbURL') + dbname
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('dbURL') if os.environ.get('dbURL') != None else dbURL + dbname
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 login_manager = LoginManager()
@@ -214,14 +214,14 @@ def receiveAmt():
     channel = connection.channel()
 
     # set up the exchange if the exchange doesn't exist
-    exchangename="rewards_direct"
+    exchangename="customer"
     channel.exchange_declare(exchange=exchangename, exchange_type='direct')
 
     # prepare a queue for receiving messages
     channelqueue = channel.queue_declare(queue='', exclusive=True) # '' indicates a random unique queue name; 'exclusive' indicates the queue is used only by this receiver and will be deleted if the receiver disconnects.
         # If no need durability of the messages, no need durable queues, and can use such temp random queues.
     queue_name = channelqueue.method.queue
-    channel.queue_bind(exchange=exchangename, queue=queue_name, routing_key='rewards.info') # bind the queue to the exchange via the key
+    channel.queue_bind(exchange=exchangename, queue=queue_name, routing_key='customer.info') # bind the queue to the exchange via the key
         # Can bind the same queue to the same exchange via different keys
 
     # set up a consumer and start to wait for coming messages
