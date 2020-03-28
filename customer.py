@@ -5,14 +5,12 @@ from flask_cors import CORS
 # Third-party libraries for Google Login API
 from flask_login import LoginManager,current_user,login_required,login_user,logout_user
 
-
 from datetime import datetime
 import json
 import os
 import sqlite3
 import requests
 import pika
-import csv
 import oauthlib.oauth2 as oo
 
 from flask_graphql import GraphQLView
@@ -34,16 +32,15 @@ GOOGLE_DISCOVERY_URL = (
 )
 # using flask's login manager for user session mgmt setup
 
-dbname = "customer"
 host = "localhost"
 port = 5300
 
 # OAuth 2 client setup
 client = oo.WebApplicationClient(GOOGLE_CLIENT_ID)
-dbURL = "mysql+mysqlconnector://root@localhost:3306/"
+dbURL = "mysql+mysqlconnector://root@localhost:3306/customer" if os.environ.get('dbURL') == None else os.environ.get('dbURL')
 
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('dbURL') if os.environ.get('dbURL') != None else dbURL + dbname
+app.config['SQLALCHEMY_DATABASE_URI'] = dbURL
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 login_manager = LoginManager()
@@ -54,7 +51,7 @@ CORS(app)
 
 ######## GRAPHQL settings ##########
 
-class User(ObjectType):
+class Users(ObjectType):
     userID = Int()
     name = String()
     email = String()
@@ -71,11 +68,11 @@ class usePoints(ObjectType):
     deduction = Float()
 
 class Query(ObjectType):
-    user = Field(User, userID = Int())
-    users = List(User, tier = Int())
+    user = Field(Users, userID = Int())
+    users = List(Users, tier = Int())
     use = Field(usePoints, userID = Int(), points = Int())
-    login = Field(User, email = String())
-    register = Field(User, name = String(), email = String(), telehandle = String())
+    login = Field(Users, email = String())
+    register = Field(Users, name = String(), email = String(), telehandle = String())
 
     def resolve_user(parent, info, userID):
         r = requests.get("http://{}:{}/viewUser/{}".format(host,port,userID)).json()
@@ -203,7 +200,6 @@ def usePoints():
         result['dedeuction'] = points/100
 
     return jsonify(result),status
-
 
 def receiveAmt():
     hostname = "localhost" # default host
@@ -366,5 +362,5 @@ def logout():
     return redirect(url_for("home"))
 
 if __name__ == '__main__':
-    app.run(host="0.0.0.0", port=5300, debug=True)
+    app.run(host="localhost", port=5300, debug=True)
 
