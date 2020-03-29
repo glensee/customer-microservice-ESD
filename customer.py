@@ -31,7 +31,7 @@ GOOGLE_DISCOVERY_URL = (
 )
 # using flask"s login manager for user session mgmt setup
 
-host = "localhost"
+host = "0.0.0.0"
 port = 5300
 
 # OAuth 2 client setup
@@ -373,5 +373,5 @@ def logout():
     return redirect(url_for("home"))
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=port, debug=True)
+    app.run(host=host, port=port, debug=True)
 
