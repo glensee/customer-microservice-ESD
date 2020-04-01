@@ -31,13 +31,13 @@ GOOGLE_DISCOVERY_URL = (
 )
 # using flask"s login manager for user session mgmt setup
 
-host = "localhost"
+host = "172.31.30.44"
 port = 5300
 
 # OAuth 2 client setup
 client = oo.WebApplicationClient(GOOGLE_CLIENT_ID)
 dbName = "customer"
-dbURL = "mysql+mysqlconnector://root@localhost:3306/" if os.environ.get("dbURL") == None else os.environ.get("dbURL")
+dbURL = os.environ.get("dbURL")
 dbURL += dbName
 
 app = Flask(__name__)
@@ -130,7 +130,8 @@ class User(db.Model):
     #     self.exp = exp
 
     def json(self):
-        return {"userID": self.userID, "name": self.name, "email": self.email, "telehandle": self.telehandle, "teleID": self.teleID, "point": self.point, "exp": self.exp, "tier": getTier(self.exp)}
+        return {"userID": self.userID, "name": self.name, "email": self.email, "telehandle": self.telehandle, "teleID": self.teleID, "point": self.point, "exp": self.e
+xp, "tier": getTier(self.exp)}
 
 
 def getTier(exp):
@@ -213,7 +214,7 @@ def usePoints():
     return jsonify(result),status
 
 def receiveAmt():
-    hostname = "localhost" # default host
+    hostname = "172.31.30.44" # default host
     port = 5672 # default port
     # connect to the broker and set up a communication channel in the connection
     connection = pika.BlockingConnection(pika.ConnectionParameters(host=hostname, port=port))
@@ -224,7 +225,8 @@ def receiveAmt():
     channel.exchange_declare(exchange=exchangename, exchange_type="direct")
 
     # prepare a queue for receiving messages
-    channelqueue = channel.queue_declare(queue="customer", durable=True) # "" indicates a random unique queue name; "exclusive" indicates the queue is used only by this receiver and will be deleted if the receiver disconnects.
+    channelqueue = channel.queue_declare(queue="customer", durable=True) # "" indicates a random unique queue name; "exclusive" indicates the queue is used only by thi
+s receiver and will be deleted if the receiver disconnects.
         # If no need durability of the messages, no need durable queues, and can use such temp random queues.
     queue_name = channelqueue.method.queue
     channel.queue_bind(exchange=exchangename, queue="customer", routing_key="rewards.info") # bind the queue to the exchange via the key
@@ -373,5 +375,4 @@ def logout():
     return redirect(url_for("home"))
 
 if __name__ == "__main__":
-    app.run(host=host, port=port, debug=True)
-
+    app.run(host="0.0.0.0", port=port, debug=True)
