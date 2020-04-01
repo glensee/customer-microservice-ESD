@@ -130,8 +130,7 @@ class User(db.Model):
     #     self.exp = exp
 
     def json(self):
-        return {"userID": self.userID, "name": self.name, "email": self.email, "telehandle": self.telehandle, "teleID": self.teleID, "point": self.point, "exp": self.e
-xp, "tier": getTier(self.exp)}
+        return {"userID": self.userID, "name": self.name, "email": self.email, "telehandle": self.telehandle, "teleID": self.teleID, "point": self.point, "exp": self.exp, "tier": getTier(self.exp)}
 
 
 def getTier(exp):
@@ -225,8 +224,7 @@ def receiveAmt():
     channel.exchange_declare(exchange=exchangename, exchange_type="direct")
 
     # prepare a queue for receiving messages
-    channelqueue = channel.queue_declare(queue="customer", durable=True) # "" indicates a random unique queue name; "exclusive" indicates the queue is used only by thi
-s receiver and will be deleted if the receiver disconnects.
+    channelqueue = channel.queue_declare(queue="customer", durable=True)
         # If no need durability of the messages, no need durable queues, and can use such temp random queues.
     queue_name = channelqueue.method.queue
     channel.queue_bind(exchange=exchangename, queue="customer", routing_key="rewards.info") # bind the queue to the exchange via the key
