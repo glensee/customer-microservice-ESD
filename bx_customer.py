@@ -20,11 +20,11 @@ from graphene.types.datetime import Date
 ######## google api settings #########
 
 file = open("googleAPI.txt")
-line1 = file.readline()
-line2 = file.readline()
-GOOGLE_CLIENT_ID = line1
+line = file.readline().split(",")
+
+GOOGLE_CLIENT_ID = line[0]
 os.environ.get("GOOGLE_CLIENT_ID", None)
-GOOGLE_CLIENT_SECRET = line2
+GOOGLE_CLIENT_SECRET = line[1]
 os.environ.get("GOOGLE_CLIENT_SECRET", None)
 GOOGLE_DISCOVERY_URL = (
     "https://accounts.google.com/.well-known/openid-configuration"
