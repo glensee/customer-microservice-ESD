@@ -208,7 +208,7 @@ def usePoints():
     else:
         user.point = User.point - points
         db.session.commit()
-        result["dedeuction"] = points/100
+        result["deduction"] = points/100
 
     return jsonify(result),status
 
